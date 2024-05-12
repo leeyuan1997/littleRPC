@@ -2,17 +2,15 @@ package com.liy.netty.rpc.server.handler;
 
 import com.liy.netty.rpc.protcol.impl.RpcRequest;
 import com.liy.netty.rpc.protcol.impl.RpcResponse;
-import com.liy.netty.rpc.server.registry.ServiceRegistry;
+import com.liy.netty.rpc.server.registry.ServiceSaver;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 
 import java.lang.reflect.Method;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class RequestHandler extends SimpleChannelInboundHandler<RpcRequest> {
-    ServiceRegistry registry;
-    public RequestHandler(ServiceRegistry registry) {
+    ServiceSaver registry;
+    public RequestHandler(ServiceSaver registry) {
         this.registry = registry;
     }
     @Override

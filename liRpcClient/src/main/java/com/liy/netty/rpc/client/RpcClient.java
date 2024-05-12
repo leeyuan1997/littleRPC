@@ -1,5 +1,6 @@
 package com.liy.netty.rpc.client;
 
+import com.liy.netty.rpc.client.connection.ConnectionPool;
 import com.liy.netty.rpc.client.handler.MyLengthFieldBasedFrameDecoder;
 import com.liy.netty.rpc.client.handler.RequestEncoder;
 import com.liy.netty.rpc.client.handler.ResponseDecoder;
@@ -20,52 +21,27 @@ import java.util.concurrent.ExecutionException;
 
 public class RpcClient {
     List<Channel> channelList;
-    EventLoopGroup workerGroup = new NioEventLoopGroup();
-
+    ConnectionPool connectionPool;
     public RpcClient() {
         channelList = new ArrayList<>();
-        String host = "localhost";
-        int port = 9090;
-
-        try {
-            Bootstrap b = new Bootstrap(); // (1)
-            b.group(workerGroup); // (2)
-            b.channel(NioSocketChannel.class); // (3)
-            b.option(ChannelOption.SO_KEEPALIVE, true); // (4)
-            b.handler(new ChannelInitializer<SocketChannel>() {
-                @Override
-                public void initChannel(SocketChannel ch) throws Exception {
-                    ch.pipeline()
-                            .addLast(new MyLengthFieldBasedFrameDecoder())
-                            .addLast(new RequestEncoder())
-                            .addLast(new ResponseDecoder())
-                            .addLast(new RpcClientHandler());
-                }
-            });
-
-            // Start the client.
-            Channel channel = b.connect(host, port).sync().channel();// (5)
-            channelList.add(channel);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        } finally {
-//            workerGroup.shutdownGracefully();
-        }
+        String zkaddress="127.0.0.1:2181";
+        connectionPool = new ConnectionPool(zkaddress);
     }
 
     public RpcResponse sendRequest(RpcRequest request) throws ExecutionException, InterruptedException {
         String serviceName = request.getInterfaceName();
         Channel channel = getChannel(serviceName);
         CompletableFuture<RpcResponse> future = new CompletableFuture<>();
+        //获取对应的handler
         RpcClientHandler rpcClientHandler = channel.pipeline().get(RpcClientHandler.class);
         rpcClientHandler.setFuture(request.getRequestId(),future);
         channel.writeAndFlush(request);
         RpcResponse rpcResponse = future.get();
-        workerGroup.shutdownGracefully();
         return  rpcResponse;
     }
 
     Channel getChannel(String serviceName){
-        return channelList.get(0);
+        return connectionPool.getConnection(serviceName);
     }
 }
+

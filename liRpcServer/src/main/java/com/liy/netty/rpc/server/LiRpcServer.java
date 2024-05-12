@@ -3,10 +3,11 @@ package com.liy.netty.rpc.server;
 import com.liy.netty.rpc.server.handler.RequestDecoder;
 import com.liy.netty.rpc.server.handler.RequestHandler;
 import com.liy.netty.rpc.server.handler.ResponseEncoder;
-import com.liy.netty.rpc.server.registry.DefaultServiceRegistry;
-import com.liy.netty.rpc.server.registry.ServiceRegistry;
+import com.liy.netty.rpc.server.registry.DefaultServiceSaver;
+import com.liy.netty.rpc.server.registry.ServiceSaver;
 import com.liy.netty.rpc.server.serviceimpl.ServerHelloServiceImpl;
 import com.liy.netty.rpc.service.HelloService;
+import com.liy.netty.rpc.serviceZooKeeper.ServiceRegistry;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -20,13 +21,19 @@ import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 public class LiRpcServer implements Runnable{
 
     private int port;
-    ServiceRegistry registry = new DefaultServiceRegistry();
-    public LiRpcServer(int port) {
+    ServiceSaver saver = new DefaultServiceSaver();
+    private  String ip;
+    ServiceRegistry zkRegistry;
+    public LiRpcServer(String ip,int port) {
+        this.ip = ip;
         this.port = port;
+        String zkaddress="127.0.0.1:2181";
+        zkRegistry = new ServiceRegistry(zkaddress);
     }
 
     public void run() {
-        registry.register(HelloService.class,new ServerHelloServiceImpl());
+        //注册服务
+        RegisterService(HelloService.class,new ServerHelloServiceImpl());
         EventLoopGroup bossGroup = new NioEventLoopGroup(); // (1)
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
@@ -40,7 +47,7 @@ public class LiRpcServer implements Runnable{
                                     .addLast(new RequestDecoder())
 
                                     .addLast(new ResponseEncoder())
-                                    .addLast(new RequestHandler(registry));
+                                    .addLast(new RequestHandler(saver));
                         }
                     })
                     .option(ChannelOption.SO_BACKLOG, 128)          // (5)
@@ -61,5 +68,9 @@ public class LiRpcServer implements Runnable{
         }
     }
 
+    public void RegisterService(Class<?>clazz,Object instance){
+        saver.register(HelloService.class,new ServerHelloServiceImpl());
+        zkRegistry.registerService(clazz.getName(),String.join(":",new String[]{ip,String.valueOf(port)}));
+    }
 
 }

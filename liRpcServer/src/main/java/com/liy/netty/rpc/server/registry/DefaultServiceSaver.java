@@ -3,7 +3,7 @@ package com.liy.netty.rpc.server.registry;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class DefaultServiceRegistry  implements ServiceRegistry{
+public class DefaultServiceSaver implements ServiceSaver {
     private final Map<Class<?>, Object> serviceMap = new ConcurrentHashMap<>();
 
     @Override
