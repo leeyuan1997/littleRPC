@@ -20,11 +20,12 @@ import java.util.concurrent.ExecutionException;
 
 public class RpcClient {
     List<Channel> channelList;
+    EventLoopGroup workerGroup = new NioEventLoopGroup();
+
     public RpcClient() {
         channelList = new ArrayList<>();
         String host = "localhost";
         int port = 9090;
-        EventLoopGroup workerGroup = new NioEventLoopGroup();
 
         try {
             Bootstrap b = new Bootstrap(); // (1)
@@ -57,9 +58,11 @@ public class RpcClient {
         Channel channel = getChannel(serviceName);
         CompletableFuture<RpcResponse> future = new CompletableFuture<>();
         RpcClientHandler rpcClientHandler = channel.pipeline().get(RpcClientHandler.class);
-        rpcClientHandler.setFuture(future);
+        rpcClientHandler.setFuture(request.getRequestId(),future);
         channel.writeAndFlush(request);
-        return future.get();
+        RpcResponse rpcResponse = future.get();
+        workerGroup.shutdownGracefully();
+        return  rpcResponse;
     }
 
     Channel getChannel(String serviceName){
