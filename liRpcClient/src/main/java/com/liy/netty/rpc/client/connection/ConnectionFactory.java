@@ -43,12 +43,10 @@ public class ConnectionFactory {
         String host = addressParts[0];
         int port = Integer.parseInt(addressParts[1]);
         try {
-            CompletableFuture<Channel> connectFuture = connect(host, 4545,0).exceptionally(ex -> {
-                System.out.println("ds");
-                // 异常处理，抛出更具体的异常或返回null
-                throw new RuntimeException("连接失败: " + ex.getMessage(), ex);
-            });
-                return connectFuture.join();
+            CompletableFuture<Channel> connectFuture = connect(host, port,0);
+            Channel channel = connectFuture.join();
+            System.out.println(channel);
+            return channel;
         }catch (Exception e) {
             throw  new RuntimeException("连接失败");
         }

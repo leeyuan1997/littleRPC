@@ -5,6 +5,7 @@ import com.liy.netty.rpc.server.handler.RequestHandler;
 import com.liy.netty.rpc.server.handler.ResponseEncoder;
 import com.liy.netty.rpc.server.registry.DefaultServiceSaver;
 import com.liy.netty.rpc.server.registry.ServiceSaver;
+import com.liy.netty.rpc.server.serviceimpl.RpcService;
 import com.liy.netty.rpc.server.serviceimpl.ServerHelloServiceImpl;
 import com.liy.netty.rpc.service.HelloService;
 import com.liy.netty.rpc.serviceZooKeeper.ServiceRegistry;
@@ -17,23 +18,74 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import org.slf4j.Logger;
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 
-public class LiRpcServer implements Runnable{
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.core.env.Environment;
+import org.springframework.stereotype.Component;
 
-    private int port;
-    ServiceSaver saver = new DefaultServiceSaver();
+import java.util.Map;
+
+@Component
+public class LiRpcServer implements Runnable, BeanPostProcessor {
+
+    private Integer port;
+
+    ServiceSaver saver;
     private  String ip;
     ServiceRegistry zkRegistry;
-    public LiRpcServer(String ip,int port) {
+
+    private ApplicationContext context;
+    @Autowired
+    public void setSaver(ServiceSaver saver) {
+        this.saver = saver;
+    }
+    @Autowired
+    public void setContext(ApplicationContext context) {
+        this.context = context;
+    }
+
+    @Override
+    public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+        Map<String, Object> serviceMap = context.getBeansWithAnnotation(RpcService.class);
+        for(Object serviceBean: serviceMap.values()){
+            Class<?>[] interfaces = serviceBean.getClass().getInterfaces();
+            for(Class serviceInterface : interfaces ){
+                saver.register((Class<Object>)serviceInterface,serviceBean);
+            }
+        }
+        System.out.println("注册成功");
+        return bean;
+    }
+    @Autowired
+    private Environment env;
+
+    public void someMethod() {
+        String ip = env.getProperty("server.host");
+        Integer port = Integer.parseInt(env.getProperty("server.port"));
+        String zkAddress = env.getProperty("zookeeper.host");
+        // 使用这些值进行操作
+    }
+
+    public LiRpcServer(@Value("${server.host}") String ip,
+                       @Value("${server.port}") Integer port,
+                       @Value("${zookeeper.host}") String zkAddress) {
         this.ip = ip;
         this.port = port;
-        String zkaddress="127.0.0.1:2181";
-        zkRegistry = new ServiceRegistry(zkaddress);
+        zkRegistry = new ServiceRegistry(zkAddress);
     }
 
     public void run() {
         //注册服务
-        RegisterService(HelloService.class,new ServerHelloServiceImpl());
+        RegisterService(HelloService.class);
         EventLoopGroup bossGroup = new NioEventLoopGroup(); // (1)
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
@@ -68,9 +120,10 @@ public class LiRpcServer implements Runnable{
         }
     }
 
-    public void RegisterService(Class<?>clazz,Object instance){
-        saver.register(HelloService.class,new ServerHelloServiceImpl());
+    public void RegisterService(Class<?>clazz){
+//        saver.register(HelloService.class,new ServerHelloServiceImpl());
         zkRegistry.registerService(clazz.getName(),String.join(":",new String[]{ip,String.valueOf(port)}));
     }
+
 
 }

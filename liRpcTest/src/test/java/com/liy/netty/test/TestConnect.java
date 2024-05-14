@@ -13,7 +13,7 @@ import java.util.concurrent.*;
 public class TestConnect {
     @Test
     public void startServer(){
-        LiRpcServer server = new LiRpcServer("localhost",9090);
+        LiRpcServer server = new LiRpcServer("localhost",9090,"127.0.0.1:2181");
         server.run();
     }
     @Test

@@ -5,9 +5,10 @@ import com.liy.netty.rpc.protcol.impl.RpcResponse;
 import com.liy.netty.rpc.server.registry.ServiceSaver;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
-
 public class RequestHandler extends SimpleChannelInboundHandler<RpcRequest> {
     ServiceSaver registry;
     public RequestHandler(ServiceSaver registry) {

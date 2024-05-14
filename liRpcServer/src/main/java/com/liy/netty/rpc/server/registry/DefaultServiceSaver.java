@@ -1,8 +1,10 @@
 package com.liy.netty.rpc.server.registry;
 
+import org.springframework.stereotype.Component;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
+@Component
 public class DefaultServiceSaver implements ServiceSaver {
     private final Map<Class<?>, Object> serviceMap = new ConcurrentHashMap<>();
 

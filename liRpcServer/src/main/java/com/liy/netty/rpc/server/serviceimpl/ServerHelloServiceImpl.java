@@ -1,7 +1,7 @@
 package com.liy.netty.rpc.server.serviceimpl;
 
 import com.liy.netty.rpc.service.HelloService;
-
+@RpcService(HelloService.class)
 public class ServerHelloServiceImpl implements HelloService {
     @Override
     public int add(int a, int b) {
